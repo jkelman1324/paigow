@@ -1,26 +1,20 @@
 local love = require("love")
 local deckModule = require("Deck")
 local playerModule = require("Player")
+local evaluator = require("HandEvaluator")
 
 function love.load()
-	deck = Deck:new()
+	math.randomseed(os.time())
+	local deck = Deck:new()
 	deck:shuffle()
 
-	player = Player:new("You")
-	dealer = Player:new("Dealer")
+	local player = Player:new("You")
+	local dealer = Player:new("Dealer")
 
 	player:receiveCards(deck:deal(7))
 	dealer:receiveCards(deck:deal(7))
 
-	print("Player Hand:")
-	for _, card in ipairs(player.hand) do
-		print(card.rank .. " of " .. card.suit)
-	end
-
-	print("Dealer Hand:")
-	for _, card in ipairs(dealer.hand) do
-		print(card.rank .. " of " .. card.suit)
-	end
+	evaluator.evaluateHand(player.hand)
 end
 
 function love.update() end
