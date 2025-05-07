@@ -34,9 +34,13 @@ local handRanks = {
 function M.evaluateHand(cards)
 	local ranks = {}
 	local suits = {}
-	for _, card in pairs(cards) do
+
+	for _, card in ipairs(cards) do
 		ranks[card.rank] = (ranks[card.rank] or 0) + 1
-		suits[card.suit] = (suits[card.suit] or 0) + 1
+
+		if card.rank ~= "Joker" then
+			suits[card.suit] = (suits[card.suit] or 0) + 1
+		end
 	end
 
 	local rankValuesList = {}
@@ -50,8 +54,45 @@ function M.evaluateHand(cards)
 		return a > b
 	end)
 
-	if ranks["Joker"] ~= nil then
-	else
+	-- Five Aces
+	if ranks["A"] == 4 and ranks["Joker"] == 1 then
+		return {
+			rank = "Five Aces",
+			value = 11,
+		}
+	end
+end
+
+local function containsJoker(hand)
+	for _, card in ipairs(hand) do
+		if card.rank == "Joker" then
+			return true
+		end
+	end
+	return false
+end
+
+local function isStraight(cards)
+	local iterations = 3
+	if containsJoker(cards) then
+		iterations = 2
+	end
+
+	for i = 1, iterations, 1 do
+		local count = 0
+		local j = i
+		while true do
+			if ranks[j + 1] - ranks[j] == 1 then
+				j = j + 1
+				count = count + 1
+			else
+				count = 0
+				break
+			end
+
+			if count == 5 then
+			end
+		end
 	end
 end
 

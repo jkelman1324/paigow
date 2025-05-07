@@ -9,12 +9,6 @@ function love.load()
 	deck:shuffle()
 
 	local player = Player:new("You")
-	local dealer = Player:new("Dealer")
-
-	player:receiveCards(deck:deal(7))
-	dealer:receiveCards(deck:deal(7))
-
-	evaluator.evaluateHand(player.hand)
 end
 
 function love.update() end
