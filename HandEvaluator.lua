@@ -31,7 +31,67 @@ local handRanks = {
 	["Five Aces"] = 11, -- with Joker
 }
 
-function M.evaluateHand(cards)
+local royalRanks = { ["A"] = 1, ["K"] = 1, 12, 11, 10 }
+
+local function containsJoker(hand)
+	for _, card in ipairs(hand) do
+		if card.rank == "Joker" then
+			return true
+		end
+	end
+	return false
+end
+
+local function tablesEqual(t1, t2)
+	-- If both are not tables or are the same table, return direct comparison
+	if t1 == t2 then
+		return true
+	end
+	if type(t1) ~= "table" or type(t2) ~= "table" then
+		return false
+	end
+
+	-- Check if they have the same number of keys
+	local t1Count, t2Count = 0, 0
+	for _ in pairs(t1) do
+		t1Count = t1Count + 1
+	end
+	for _ in pairs(t2) do
+		t2Count = t2Count + 1
+	end
+	if t1Count ~= t2Count then
+		return false
+	end
+
+	-- Compare each key-value pair
+	for key, value1 in pairs(t1) do
+		local value2 = t2[key]
+
+		-- If value is a table, compare recursively
+		if type(value1) == "table" and type(value2) == "table" then
+			if not tablesEqual(value1, value2) then
+				return false
+			end
+		else
+			if value1 ~= value2 then
+				return false
+			end
+		end
+	end
+
+	return true
+end
+
+local function isStraight(cards)
+	for i = 1, 4, 1 do
+		if cards[i] - cards[i + 1] ~= 1 then
+			return false
+		end
+	end
+	return true
+end
+
+function M.evaluateHighHand(cards)
 	local ranks = {}
 	local suits = {}
 
@@ -61,39 +121,119 @@ function M.evaluateHand(cards)
 			value = 11,
 		}
 	end
-end
 
-local function containsJoker(hand)
-	for _, card in ipairs(hand) do
-		if card.rank == "Joker" then
-			return true
+	-- Royal Flush
+	if #suits == 1 and tablesEqual(rankValuesList, royalRanks) then
+		return {
+			rank = "Royal Flush",
+			value = 10,
+		}
+	end
+
+	-- Straight Flush
+	local straight = isStraight(rankValuesList)
+	if #suits == 1 and straight then
+		return {
+			rank = "Straight Flush",
+			value = 9,
+			tiebreaker = rankValuesList[1],
+		}
+	end
+
+	-- Four of a Kind
+	for _, v in pairs(ranks) do
+		if v == 4 then
+			return {
+				rank = "Four of a Kind",
+				value = 8,
+				tiebreaker = v,
+			}
 		end
 	end
-	return false
-end
 
-local function isStraight(cards)
-	local iterations = 3
-	if containsJoker(cards) then
-		iterations = 2
-	end
-
-	for i = 1, iterations, 1 do
-		local count = 0
-		local j = i
-		while true do
-			if ranks[j + 1] - ranks[j] == 1 then
-				j = j + 1
-				count = count + 1
-			else
-				count = 0
-				break
-			end
-
-			if count == 5 then
-			end
+	-- Full House
+	local set = false
+	local setVal = 0
+	local pair = false
+	local pairVal = 0
+	for _, v in pairs(ranks) do
+		if v == 3 then
+			set = true
+			setVal = v
+		end
+		if v == 2 then
+			pair = true
+			pairVal = v
 		end
 	end
+	if set and pair then
+		return {
+			rank = "Full House",
+			value = 7,
+			tiebreaker = { setVal },
+		}
+	end
+
+	-- Flush
+	if #suits == 1 then
+		return {
+			rank = "Flush",
+			value = 6,
+			tiebreaker = rankValuesList,
+		}
+	end
+
+	-- Straight
+	if straight then
+		return {
+			rank = "Straight",
+			value = 5,
+			tiebreaker = rankValuesList,
+		}
+	end
+
+	-- Three of a Kind
+	if set then
+		return {
+			rank = "Three of a Kind",
+			value = 4,
+			tiebreaker = { setVal },
+		}
+	end
+
+	-- Two-Pair
+	local pairVals = {}
+	for _, v in pairs(ranks) do
+		if v == 2 then
+			table.insert(pairVals, v)
+		end
+	end
+	if #pairVals == 2 then
+		table.sort(pairVals, function(a, b)
+			return a > b
+		end)
+		return {
+			rank = "Two Pair",
+			value = 3,
+			tiebreaker = pairVals,
+		}
+	end
+
+	-- Pair
+	if pair then
+		return {
+			rank = "Pair",
+			value = 2,
+			tiebreaker = pairVal,
+		}
+	end
+
+	-- High Card
+	return {
+		rank = "High Card",
+		value = 1,
+		tiebreaker = rankValuesList,
+	}
 end
 
 return M
