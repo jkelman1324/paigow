@@ -107,7 +107,7 @@ function M.evaluateHighHand(cards)
 
 	-- Four of a Kind
 	for rank, count in pairs(ranks) do
-		if v == 4 then
+		if count == 4 then
 			return {
 				rank = "Four of a Kind",
 				value = handValues["Four of a Kind"],
@@ -120,7 +120,7 @@ function M.evaluateHighHand(cards)
 	local set, pair = false, false
 	local setVal, pairVal
     for rank, count in pairs(ranks) do
-        if count == 3 then 
+        if count == 3 then
             set = true
             setVal = rankValues[rank]
         end
@@ -128,6 +128,7 @@ function M.evaluateHighHand(cards)
             pair = true
             pairVal = rankValues[rank]
         end
+    end
 	if set and pair then
 		return {
 			rank = "Full House",
@@ -196,6 +197,43 @@ function M.evaluateHighHand(cards)
 		value = handValues["High Card"],
 		tiebreaker = rankValuesList,
 	}
+end
+
+function M.evaluateLowHand(cards)
+    local ranks = {}
+    for _, card in ipairs(cards) do
+        ranks[card.rank] = (ranks[card.rank] or 0) + 1
+    end
+
+    local rankVals = {}
+    for rank, count in pairs(ranks) do
+        local val = (rank == "Joker") and rankValues["A"] or rankValues[rank]
+        for _ = 1, count do
+            table.insert(rankVals, val)
+        end
+    end
+
+    table.sort(rankVals, function(a, b)
+        return a > b
+    end)
+
+    -- Check for One Pair
+    for _, count in pairs(ranks) do
+        if count == 2 then
+            return {
+                rank = "One Pair",
+                value = handValues["One Pair"],
+                tiebreaker = rankVals,
+            }
+        end
+    end
+
+    -- High Card
+    return {
+        rank = "High Card",
+        value = handValues["High Card"],
+        tiebreaker = rankVals,
+    }
 end
 
 return M

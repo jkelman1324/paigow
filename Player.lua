@@ -15,3 +15,5 @@ end
 function Player:receiveCards(cards)
 	self.hand = cards
 end
+
+return Player
