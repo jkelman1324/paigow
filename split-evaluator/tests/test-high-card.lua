@@ -1,34 +1,75 @@
-local splitEvaluator = require("split-evaluator")
+-- test-high-card.lua
 
-local function makeCard(rank, suit)
-    return { rank = rank, suit = suit }
-end
+local highCard = require("high-card")
+local testUtils = require("test-utils")
 
-local function testHighCard()
-    local hand = {
-        makeCard("Q", "Hearts"),
-        makeCard("10", "Clubs"),
-        makeCard("7", "Diamonds"),
-        makeCard("4", "Spades"),
-        makeCard("2", "Hearts"),
-        makeCard("9", "Clubs"),
-        makeCard("J", "Diamonds"),
+local function testBasicHighCard()
+    local cards = {
+        testUtils.card("A", "Hearts"),
+        testUtils.card("K", "Clubs"),
+        testUtils.card("Q", "Diamonds"),
+        testUtils.card("J", "Spades"),
+        testUtils.card("10", "Hearts"),
+        testUtils.card("9", "Clubs"),
+        testUtils.card("8", "Diamonds")
     }
 
-    local split = splitEvaluator.houseWaySplit(hand)
+    local result = highCard.splitHighCard(cards)
 
-    assert(#split.high == 5, "High hand should have 5 cards")
-    assert(#split.low == 2, "Low hand should have 2 cards")
+    -- High hand should have A and 4 lowest cards
+    testUtils.assertEqual(#result.high, 5)
+    testUtils.assertEqual(#result.low, 2)
 
-    -- High hand must contain the highest card
-    local highRanks = {}
-    for _, c in ipairs(split.high) do
-        highRanks[c.rank] = true
+    -- Check that A is in high hand
+    local hasAce = false
+    for _, card in ipairs(result.high) do
+        if card.rank == "A" then
+            hasAce = true
+            break
+        end
     end
-    assert(highRanks["Q"], "High hand must contain Queen")
+    testUtils.assert(hasAce, "Ace should be in high hand")
 
-    print("High Card test passed")
+    -- Check that K is in low hand (highest of remaining)
+    local hasKing = false
+    for _, card in ipairs(result.low) do
+        if card.rank == "K" then
+            hasKing = true
+            break
+        end
+    end
+    testUtils.assert(hasKing, "King should be in low hand")
 end
 
-testHighCard()
+local function testHighCardWithJoker()
+    local cards = {
+        testUtils.card("Joker"),
+        testUtils.card("K", "Clubs"),
+        testUtils.card("Q", "Diamonds"),
+        testUtils.card("J", "Spades"),
+        testUtils.card("10", "Hearts"),
+        testUtils.card("9", "Clubs"),
+        testUtils.card("8", "Diamonds")
+    }
 
+    local result = highCard.splitHighCard(cards)
+
+    -- Joker should be in high hand (highest card)
+    local hasJoker = false
+    for _, card in ipairs(result.high) do
+        if card.rank == "Joker" then
+            hasJoker = true
+            break
+        end
+    end
+    testUtils.assert(hasJoker, "Joker should be in high hand")
+end
+
+local function runHighCardTests()
+    testUtils.runTest("BasicHighCard", testBasicHighCard)
+    testUtils.runTest("HighCardWithJoker", testHighCardWithJoker)
+end
+
+return {
+    runHighCardTests = runHighCardTests
+}

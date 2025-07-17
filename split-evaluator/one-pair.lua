@@ -1,30 +1,36 @@
-local helpers = require("split-evaluator.helpers")
+-- one-pair.lua
+local helpers = require("helpers")
 
 local M = {}
 
 function M.splitOnePair(cards, pairRank, counts)
     local pairCards = helpers.findCardsByRank(cards, pairRank, 2)
     local highHand = {}
-    for _, c in ipairs(pairCards) do
-        table.insert(highHand, c)
+    
+    -- Add pair to high hand
+    for _, card in ipairs(pairCards) do
+        table.insert(highHand, card)
     end
 
-    local lowHand = {}
+    -- Get remaining cards for low hand
+    local remainingCards = {}
     for _, card in ipairs(cards) do
-        if card.rank ~= pairRank then
-            table.insert(lowHand, card)
+        if helpers.getEffectiveRank(card) ~= pairRank then
+            table.insert(remainingCards, card)
         end
     end
 
-    helpers.sortByRankDesc(lowHand)
-    local lowSplit = { lowHand[1], lowHand[2] }
-
-    for i = 3, #lowHand do
-        table.insert(highHand, lowHand[i])
+    helpers.sortByRankDesc(remainingCards)
+    
+    -- Two highest remaining cards go to low hand
+    local lowHand = { remainingCards[1], remainingCards[2] }
+    
+    -- Rest go to high hand
+    for i = 3, #remainingCards do
+        table.insert(highHand, remainingCards[i])
     end
 
-    return { high = highHand, low = lowSplit }
+    return { high = highHand, low = lowHand }
 end
 
 return M
-

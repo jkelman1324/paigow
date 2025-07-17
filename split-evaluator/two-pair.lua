@@ -1,17 +1,20 @@
-local helpers = require("split-evaluator.helpers")
+-- two-pair.lua
+local helpers = require("helpers")
 
 local M = {}
 
 function M.splitTwoPair(cards, pairsFound, counts)
-    -- Handle three pair case
     if #pairsFound == 3 then
-        helpers.sortByRankDesc(pairsFound)
+        -- Three pairs: keep highest pair in low hand, rest in high hand
+        table.sort(pairsFound, function(a, b)
+            return helpers.rankOrder[a] > helpers.rankOrder[b]
+        end)
         local highPair = pairsFound[1]
         local highHand = {}
         local lowHand = helpers.findCardsByRank(cards, highPair, 2)
 
         for _, card in ipairs(cards) do
-            if card.rank ~= highPair then
+            if helpers.getEffectiveRank(card) ~= highPair then
                 table.insert(highHand, card)
             end
         end
@@ -22,8 +25,8 @@ function M.splitTwoPair(cards, pairsFound, counts)
     local p1, p2 = pairsFound[1], pairsFound[2]
     local cat1, cat2 = helpers.pairCategory(p1), helpers.pairCategory(p2)
 
+    -- Check for high cards (now properly handles Joker as Ace)
     local hasAce = (counts["A"] or 0) > 0
-    local hasJoker = (counts["Joker"] or 0) > 0
     local hasKing = (counts["K"] or 0) > 0
 
     local function playBothPairsInHigh()
@@ -44,59 +47,39 @@ function M.splitTwoPair(cards, pairsFound, counts)
         local highHand = helpers.findCardsByRank(cards, p1, 2)
         local lowHand = helpers.findCardsByRank(cards, p2, 2)
         for _, card in ipairs(cards) do
-            if card.rank ~= p1 and card.rank ~= p2 then
+            local effectiveRank = helpers.getEffectiveRank(card)
+            if effectiveRank ~= p1 and effectiveRank ~= p2 then
                 table.insert(highHand, card)
             end
         end
         return { high = highHand, low = lowHand }
     end
 
-    if ((cat1 == "High" and cat2 == "Medium") or (cat2 == "High" and cat1 == "Medium")) then
-        return splitPairs()
-    end
+    -- Create canonical key for strategy lookup
+    local cats = { cat1, cat2 }
+    local catPriority = { Low = 1, Medium = 2, High = 3 }
+    table.sort(cats, function(a, b)
+        return catPriority[a] < catPriority[b]
+    end)
+    local key = cats[1] .. "-" .. cats[2]
 
-    if cat1 == "Low" and cat2 == "Low" then
+    -- Strategy table based on pair categories and high cards
+    local strategies = {
+        ["Low-Low"] = function() return "bothHigh" end,
+        ["Medium-Medium"] = function() return hasAce and "bothHigh" or "split" end,
+        ["High-High"] = function() return "split" end,
+        ["Low-Medium"] = function() return hasKing and "bothHigh" or "split" end,
+        ["Low-High"] = function() return hasAce and "bothHigh" or "split" end,
+        ["Medium-High"] = function() return (hasAce and hasKing) and "bothHigh" or "split" end,
+    }
+
+    local strategy = strategies[key]()
+
+    if strategy == "bothHigh" then
         return playBothPairsInHigh()
-    end
-
-    if (cat1 == "Low" and cat2 == "Medium") or (cat1 == "Medium" and cat2 == "Low") then
-        if hasKing then
-            return playBothPairsInHigh()
-        else
-            return splitPairs()
-        end
-    end
-
-    if (cat1 == "Low" and cat2 == "High") or (cat1 == "High" and cat2 == "Low") then
-        if hasAce or hasJoker then
-            return playBothPairsInHigh()
-        else
-            return splitPairs()
-        end
-    end
-
-    if cat1 == "Medium" and cat2 == "Medium" then
-        if hasAce or hasJoker then
-            return playBothPairsInHigh()
-        else
-            return splitPairs()
-        end
-    end
-
-    if (cat1 == "Medium" and cat2 == "High") or (cat1 == "High" and cat2 == "Medium") then
-        if hasAce and hasKing then
-            return playBothPairsInHigh()
-        else
-            return splitPairs()
-        end
-    end
-
-    if cat1 == "High" and cat2 == "High" then
+    else
         return splitPairs()
     end
-
-    return splitPairs()
 end
 
 return M
-
