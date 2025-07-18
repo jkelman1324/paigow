@@ -1,3 +1,4 @@
+-- hand-evaluator.lua
 local M = {}
 
 local rankValues = {
@@ -31,7 +32,8 @@ local handValues = {
     ["Five Aces"] = 11,
 }
 
-local function isStraight(rankValuesList, hasJoker)
+function isStraight(rankValuesList, hasJoker)
+    -- First check for regular straights
     local gaps = 0
     for i = 1, #rankValuesList - 1 do
         local diff = rankValuesList[i] - rankValuesList[i+1]
@@ -43,12 +45,36 @@ local function isStraight(rankValuesList, hasJoker)
             return false -- duplicate or invalid sequence
         end
     end
-
-    if hasJoker then
-        return gaps <= 1
-    else
-        return gaps == 0
+    
+    -- Check if regular straight is valid
+    local isRegularStraight = hasJoker and gaps <= 1 or gaps == 0
+    if isRegularStraight then
+        return true
     end
+    
+    -- Check for A-2-3-4-5 wheel straight
+    local wheelRanks = {14, 5, 4, 3, 2}
+    if not hasJoker then
+        return rankValuesList == wheelRanks
+    else
+        local wheelCardsPresent = {}
+        for _, wheelRank in ipairs(wheelRanks) do
+            for _, rank in ipairs(rankValuesList) do
+                if wheelRank == rank then
+                    wheelCardsPresent[wheelRank] = true
+                end
+            end
+        end
+
+        local wheelMatches = 0
+        for _ in pairs(wheelCardsPresent) do
+            wheelMatches = wheelMatches + 1   
+        end
+
+        if wheelMatches == 4 then return true end
+    end
+    
+    return false
 end
 
 function M.evaluateHighHand(cards)
@@ -75,6 +101,8 @@ function M.evaluateHighHand(cards)
             end
         end
     end
+
+    -- Sort ranks descending
     table.sort(rankValuesList, function(a, b)
         return a > b
     end)

@@ -15,6 +15,9 @@ function M.houseWaySplit(cards)
     helpers.sortByRankDesc(cards)
     local counts = helpers.countRanks(cards)
 
+    -- Check for straights
+    
+
     -- Check for sets
     for rank, count in pairs(counts) do
         if count == 3 then
